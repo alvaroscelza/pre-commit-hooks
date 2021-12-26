@@ -1,11 +1,14 @@
+from __future__ import print_function
+
 import argparse
 import os.path
 import re
+import sys
 from typing import Optional
 from typing import Sequence
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
     parser.add_argument(
@@ -15,7 +18,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     retcode = 0
-    test_name_pattern = r'test.*\.py' if args.django else r'.*_test\.py'
+    test_name_pattern = 'test.*.py' if args.django else '.*_test.py'
     for filename in args.filenames:
         base = os.path.basename(filename)
         if (
@@ -24,10 +27,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 not base == 'conftest.py'
         ):
             retcode = 1
-            print(f'{filename} does not match pattern "{test_name_pattern}"')
+            print(
+                '{} does not match pattern "{}"'.format(
+                    filename, test_name_pattern,
+                ),
+            )
 
     return retcode
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    sys.exit(main())

@@ -1,53 +1,39 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import re
 import sys
-from typing import List
 from typing import Optional
-from typing import Pattern
 from typing import Sequence
 
 
-def _get_pattern(domain: str) -> Pattern[bytes]:
-    regex = (
-        rf'https://{domain}/[^/ ]+/[^/ ]+/blob/'
-        r'(?![a-fA-F0-9]{4,64}/)([^/. ]+)/[^# ]+#L\d+'
-    )
-    return re.compile(regex.encode())
+GITHUB_NON_PERMALINK = re.compile(
+    br'https://github.com/[^/ ]+/[^/ ]+/blob/master/[^# ]+#L\d+',
+)
 
 
-def _check_filename(filename: str, patterns: List[Pattern[bytes]]) -> int:
+def _check_filename(filename):  # type: (str) -> int
     retv = 0
     with open(filename, 'rb') as f:
         for i, line in enumerate(f, 1):
-            for pattern in patterns:
-                if pattern.search(line):
-                    sys.stdout.write(f'{filename}:{i}:')
-                    sys.stdout.flush()
-                    sys.stdout.buffer.write(line)
-                    retv = 1
+            if GITHUB_NON_PERMALINK.search(line):
+                sys.stdout.write('{}:{}:'.format(filename, i))
+                sys.stdout.flush()
+                getattr(sys.stdout, 'buffer', sys.stdout).write(line)
+                retv = 1
     return retv
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
-    parser.add_argument(
-        '--additional-github-domain',
-        dest='additional_github_domains',
-        action='append',
-        default=['github.com'],
-    )
     args = parser.parse_args(argv)
 
-    patterns = [
-        _get_pattern(domain)
-        for domain in args.additional_github_domains
-    ]
-
     retv = 0
-
     for filename in args.filenames:
-        retv |= _check_filename(filename, patterns)
+        retv |= _check_filename(filename)
 
     if retv:
         print()
@@ -57,4 +43,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

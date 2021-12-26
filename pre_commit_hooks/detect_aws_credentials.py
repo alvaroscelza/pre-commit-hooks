@@ -1,19 +1,18 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
-import configparser
 import os
+from typing import Dict
 from typing import List
-from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 from typing import Set
 
-
-class BadFile(NamedTuple):
-    filename: str
-    key: str
+from six.moves import configparser
 
 
-def get_aws_cred_files_from_env() -> Set[str]:
+def get_aws_cred_files_from_env():  # type: () -> Set[str]
     """Extract credential file paths from environment variables."""
     return {
         os.environ[env_var]
@@ -25,18 +24,18 @@ def get_aws_cred_files_from_env() -> Set[str]:
     }
 
 
-def get_aws_secrets_from_env() -> Set[str]:
+def get_aws_secrets_from_env():  # type: () -> Set[str]
     """Extract AWS secrets from environment variables."""
     keys = set()
     for env_var in (
         'AWS_SECRET_ACCESS_KEY', 'AWS_SECURITY_TOKEN', 'AWS_SESSION_TOKEN',
     ):
-        if os.environ.get(env_var):
+        if env_var in os.environ:
             keys.add(os.environ[env_var])
     return keys
 
 
-def get_aws_secrets_from_file(credentials_file: str) -> Set[str]:
+def get_aws_secrets_from_file(credentials_file):  # type: (str) -> Set[str]
     """Extract AWS secrets from configuration files.
 
     Read an ini-style configuration file and return a set with all found AWS
@@ -67,10 +66,8 @@ def get_aws_secrets_from_file(credentials_file: str) -> Set[str]:
     return keys
 
 
-def check_file_for_aws_keys(
-        filenames: Sequence[str],
-        keys: Set[bytes],
-) -> List[BadFile]:
+def check_file_for_aws_keys(filenames, keys):
+    # type: (Sequence[str], Set[str]) -> List[Dict[str, str]]
     """Check if files contain AWS secrets.
 
     Return a list of all files containing AWS secrets and keys found, with all
@@ -79,18 +76,19 @@ def check_file_for_aws_keys(
     bad_files = []
 
     for filename in filenames:
-        with open(filename, 'rb') as content:
+        with open(filename, 'r') as content:
             text_body = content.read()
             for key in keys:
                 # naively match the entire file, low chance of incorrect
                 # collision
                 if key in text_body:
-                    key_hidden = key.decode()[:4].ljust(28, '*')
-                    bad_files.append(BadFile(filename, key_hidden))
+                    bad_files.append({
+                        'filename': filename, 'key': key[:4] + '*' * 28,
+                    })
     return bad_files
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='+', help='Filenames to run')
     parser.add_argument(
@@ -119,7 +117,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     # of files to to gather AWS secrets from.
     credential_files |= get_aws_cred_files_from_env()
 
-    keys: Set[str] = set()
+    keys = set()  # type: Set[str]
     for credential_file in credential_files:
         keys |= get_aws_secrets_from_file(credential_file)
 
@@ -138,15 +136,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         return 2
 
-    keys_b = {key.encode() for key in keys}
-    bad_filenames = check_file_for_aws_keys(args.filenames, keys_b)
+    bad_filenames = check_file_for_aws_keys(args.filenames, keys)
     if bad_filenames:
         for bad_file in bad_filenames:
-            print(f'AWS secret found in {bad_file.filename}: {bad_file.key}')
+            print('AWS secret found in {filename}: {key}'.format(**bad_file))
         return 1
     else:
         return 0
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

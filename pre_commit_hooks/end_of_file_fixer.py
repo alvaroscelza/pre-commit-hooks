@@ -1,16 +1,20 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import os
+import sys
 from typing import IO
 from typing import Optional
 from typing import Sequence
 
 
-def fix_file(file_obj: IO[bytes]) -> int:
+def fix_file(file_obj):  # type: (IO[bytes]) -> int
     # Test for newline at end of file
     # Empty files will throw IOError here
     try:
         file_obj.seek(-1, os.SEEK_END)
-    except OSError:
+    except IOError:
         return 0
     last_character = file_obj.read(1)
     # last_character will be '' for an empty file
@@ -48,7 +52,7 @@ def fix_file(file_obj: IO[bytes]) -> int:
     return 0
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*', help='Filenames to fix')
     args = parser.parse_args(argv)
@@ -60,11 +64,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         with open(filename, 'rb+') as file_obj:
             ret_for_file = fix_file(file_obj)
             if ret_for_file:
-                print(f'Fixing {filename}')
+                print('Fixing {}'.format(filename))
             retv |= ret_for_file
 
     return retv
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    sys.exit(main())

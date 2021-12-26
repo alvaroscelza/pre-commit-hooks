@@ -1,3 +1,8 @@
-covdefaults
+-e .
+
 coverage
+flake8
+mock
+pre-commit
 pytest
+pylint

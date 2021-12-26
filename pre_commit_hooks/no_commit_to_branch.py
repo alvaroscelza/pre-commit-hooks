@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import re
 from typing import AbstractSet
@@ -8,10 +10,8 @@ from pre_commit_hooks.util import CalledProcessError
 from pre_commit_hooks.util import cmd_output
 
 
-def is_on_branch(
-        protected: AbstractSet[str],
-        patterns: AbstractSet[str] = frozenset(),
-) -> bool:
+def is_on_branch(protected, patterns=frozenset()):
+    # type: (AbstractSet[str], AbstractSet[str]) -> bool
     try:
         ref_name = cmd_output('git', 'symbolic-ref', 'HEAD')
     except CalledProcessError:
@@ -23,7 +23,7 @@ def is_on_branch(
     )
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-b', '--branch', action='append',
@@ -38,10 +38,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    protected = frozenset(args.branch or ('master', 'main'))
+    protected = frozenset(args.branch or ('master',))
     patterns = frozenset(args.pattern or ())
     return int(is_on_branch(protected, patterns))
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

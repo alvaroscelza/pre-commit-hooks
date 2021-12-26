@@ -1,6 +1,5 @@
-from unittest.mock import patch
-
 import pytest
+from mock import patch
 
 from pre_commit_hooks.detect_aws_credentials import get_aws_cred_files_from_env
 from pre_commit_hooks.detect_aws_credentials import get_aws_secrets_from_env
@@ -13,15 +12,15 @@ from testing.util import get_resource_path
     ('env_vars', 'values'),
     (
         ({}, set()),
-        ({'AWS_PLACEHOLDER_KEY': '/foo'}, set()),
+        ({'AWS_DUMMY_KEY': '/foo'}, set()),
         ({'AWS_CONFIG_FILE': '/foo'}, {'/foo'}),
         ({'AWS_CREDENTIAL_FILE': '/foo'}, {'/foo'}),
         ({'AWS_SHARED_CREDENTIALS_FILE': '/foo'}, {'/foo'}),
         ({'BOTO_CONFIG': '/foo'}, {'/foo'}),
-        ({'AWS_PLACEHOLDER_KEY': '/foo', 'AWS_CONFIG_FILE': '/bar'}, {'/bar'}),
+        ({'AWS_DUMMY_KEY': '/foo', 'AWS_CONFIG_FILE': '/bar'}, {'/bar'}),
         (
             {
-                'AWS_PLACEHOLDER_KEY': '/foo', 'AWS_CONFIG_FILE': '/bar',
+                'AWS_DUMMY_KEY': '/foo', 'AWS_CONFIG_FILE': '/bar',
                 'AWS_CREDENTIAL_FILE': '/baz',
             },
             {'/bar', '/baz'},
@@ -44,16 +43,11 @@ def test_get_aws_credentials_file_from_env(env_vars, values):
     ('env_vars', 'values'),
     (
         ({}, set()),
-        ({'AWS_PLACEHOLDER_KEY': 'foo'}, set()),
+        ({'AWS_DUMMY_KEY': 'foo'}, set()),
         ({'AWS_SECRET_ACCESS_KEY': 'foo'}, {'foo'}),
         ({'AWS_SECURITY_TOKEN': 'foo'}, {'foo'}),
         ({'AWS_SESSION_TOKEN': 'foo'}, {'foo'}),
-        ({'AWS_SESSION_TOKEN': ''}, set()),
-        ({'AWS_SESSION_TOKEN': 'foo', 'AWS_SECURITY_TOKEN': ''}, {'foo'}),
-        (
-            {'AWS_PLACEHOLDER_KEY': 'foo', 'AWS_SECRET_ACCESS_KEY': 'bar'},
-            {'bar'},
-        ),
+        ({'AWS_DUMMY_KEY': 'foo', 'AWS_SECRET_ACCESS_KEY': 'bar'}, {'bar'}),
         (
             {'AWS_SECRET_ACCESS_KEY': 'foo', 'AWS_SECURITY_TOKEN': 'bar'},
             {'foo', 'bar'},
@@ -119,19 +113,6 @@ def test_detect_aws_credentials(filename, expected_retval):
         'testing/resources/aws_config_with_multiple_sections.ini',
     ))
     assert ret == expected_retval
-
-
-def test_allows_arbitrarily_encoded_files(tmpdir):
-    src_ini = tmpdir.join('src.ini')
-    src_ini.write(
-        '[default]\n'
-        'aws_access_key_id=AKIASDFASDF\n'
-        'aws_secret_Access_key=9018asdf23908190238123\n',
-    )
-    arbitrary_encoding = tmpdir.join('f')
-    arbitrary_encoding.write_binary(b'\x12\x9a\xe2\xf2')
-    ret = main((str(arbitrary_encoding), '--credentials-file', str(src_ini)))
-    assert ret == 0
 
 
 @patch('pre_commit_hooks.detect_aws_credentials.get_aws_secrets_from_file')

@@ -7,7 +7,7 @@ from pre_commit_hooks.check_builtin_literals import main
 from pre_commit_hooks.check_builtin_literals import Visitor
 
 BUILTIN_CONSTRUCTORS = '''\
-import builtins
+from six.moves import builtins
 
 c1 = complex()
 d1 = dict()
@@ -121,9 +121,9 @@ def test_dict_no_allow_kwargs_exprs(expression, calls):
 
 
 def test_ignore_constructors():
-    visitor = Visitor(
-        ignore=('complex', 'dict', 'float', 'int', 'list', 'str', 'tuple'),
-    )
+    visitor = Visitor(ignore=(
+        'complex', 'dict', 'float', 'int', 'list', 'str', 'tuple',
+    ))
     visitor.visit(ast.parse(BUILTIN_CONSTRUCTORS))
     assert visitor.builtin_type_calls == []
 
@@ -131,19 +131,19 @@ def test_ignore_constructors():
 def test_failing_file(tmpdir):
     f = tmpdir.join('f.py')
     f.write(BUILTIN_CONSTRUCTORS)
-    rc = main([str(f)])
+    rc = main([f.strpath])
     assert rc == 1
 
 
 def test_passing_file(tmpdir):
     f = tmpdir.join('f.py')
     f.write(BUILTIN_LITERALS)
-    rc = main([str(f)])
+    rc = main([f.strpath])
     assert rc == 0
 
 
 def test_failing_file_ignore_all(tmpdir):
     f = tmpdir.join('f.py')
     f.write(BUILTIN_CONSTRUCTORS)
-    rc = main(['--ignore=complex,dict,float,int,list,str,tuple', str(f)])
+    rc = main(['--ignore=complex,dict,float,int,list,str,tuple', f.strpath])
     assert rc == 0

@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
 import pytest
 
 from pre_commit_hooks.check_yaml import main
@@ -20,16 +23,16 @@ def test_main_allow_multiple_documents(tmpdir):
     f.write('---\nfoo\n---\nbar\n')
 
     # should fail without the setting
-    assert main((str(f),))
+    assert main((f.strpath,))
 
     # should pass when we allow multiple documents
-    assert not main(('--allow-multiple-documents', str(f)))
+    assert not main(('--allow-multiple-documents', f.strpath))
 
 
 def test_fails_even_with_allow_multiple_documents(tmpdir):
     f = tmpdir.join('test.yaml')
     f.write('[')
-    assert main(('--allow-multiple-documents', str(f)))
+    assert main(('--allow-multiple-documents', f.strpath))
 
 
 def test_main_unsafe(tmpdir):
@@ -40,12 +43,12 @@ def test_main_unsafe(tmpdir):
         '    deadbeefdeadbeefdeadbeef\n',
     )
     # should fail "safe" check
-    assert main((str(f),))
+    assert main((f.strpath,))
     # should pass when we allow unsafe documents
-    assert not main(('--unsafe', str(f)))
+    assert not main(('--unsafe', f.strpath))
 
 
 def test_main_unsafe_still_fails_on_syntax_errors(tmpdir):
     f = tmpdir.join('test.yaml')
     f.write('[')
-    assert main(('--unsafe', str(f)))
+    assert main(('--unsafe', f.strpath))

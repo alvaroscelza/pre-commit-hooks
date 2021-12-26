@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
 import pytest
 
 from pre_commit_hooks.check_docstring_first import check_docstring_first
@@ -56,12 +60,12 @@ def test_unit(capsys, contents, expected, expected_out):
 def test_integration(tmpdir, capsys, contents, expected, expected_out):
     f = tmpdir.join('test.py')
     f.write_binary(contents)
-    assert main([str(f)]) == expected
-    assert capsys.readouterr()[0] == expected_out.format(filename=str(f))
+    assert main([f.strpath]) == expected
+    assert capsys.readouterr()[0] == expected_out.format(filename=f.strpath)
 
 
 def test_arbitrary_encoding(tmpdir):
     f = tmpdir.join('f.py')
     contents = '# -*- coding: cp1252\nx = "£"'.encode('cp1252')
     f.write_binary(contents)
-    assert main([str(f)]) == 0
+    assert main([f.strpath]) == 0

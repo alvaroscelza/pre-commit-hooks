@@ -1,9 +1,9 @@
+from __future__ import print_function
+
 import argparse
 import os.path
 from typing import Optional
 from typing import Sequence
-
-from pre_commit_hooks.util import cmd_output
 
 
 CONFLICT_PATTERNS = [
@@ -12,21 +12,21 @@ CONFLICT_PATTERNS = [
     b'=======\n',
     b'>>>>>>> ',
 ]
+WARNING_MSG = 'Merge conflict string "{0}" found in {1}:{2}'
 
 
-def is_in_merge() -> bool:
-    git_dir = cmd_output('git', 'rev-parse', '--git-dir').rstrip()
+def is_in_merge():  # type: () -> int
     return (
-        os.path.exists(os.path.join(git_dir, 'MERGE_MSG')) and
+        os.path.exists(os.path.join('.git', 'MERGE_MSG')) and
         (
-            os.path.exists(os.path.join(git_dir, 'MERGE_HEAD')) or
-            os.path.exists(os.path.join(git_dir, 'rebase-apply')) or
-            os.path.exists(os.path.join(git_dir, 'rebase-merge'))
+            os.path.exists(os.path.join('.git', 'MERGE_HEAD')) or
+            os.path.exists(os.path.join('.git', 'rebase-apply')) or
+            os.path.exists(os.path.join('.git', 'rebase-merge'))
         )
     )
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
     parser.add_argument('--assume-in-merge', action='store_true')
@@ -41,14 +41,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             for i, line in enumerate(inputfile):
                 for pattern in CONFLICT_PATTERNS:
                     if line.startswith(pattern):
-                        print(
-                            f'Merge conflict string "{pattern.decode()}" '
-                            f'found in {filename}:{i + 1}',
-                        )
+                        print(WARNING_MSG.format(
+                            pattern.decode(), filename, i + 1,
+                        ))
                         retcode = 1
 
     return retcode
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

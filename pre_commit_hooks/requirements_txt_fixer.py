@@ -1,5 +1,6 @@
+from __future__ import print_function
+
 import argparse
-import re
 from typing import IO
 from typing import List
 from typing import Optional
@@ -10,33 +11,22 @@ PASS = 0
 FAIL = 1
 
 
-class Requirement:
-    UNTIL_COMPARISON = re.compile(b'={2,3}|!=|~=|>=?|<=?')
-    UNTIL_SEP = re.compile(rb'[^;\s]+')
+class Requirement(object):
 
-    def __init__(self) -> None:
-        self.value: Optional[bytes] = None
-        self.comments: List[bytes] = []
+    def __init__(self):  # type: () -> None
+        super(Requirement, self).__init__()
+        self.value = None  # type: Optional[bytes]
+        self.comments = []   # type: List[bytes]
 
     @property
-    def name(self) -> bytes:
+    def name(self):  # type: () -> bytes
         assert self.value is not None, self.value
-        name = self.value.lower()
-        for egg in (b'#egg=', b'&egg='):
-            if egg in self.value:
-                return name.partition(egg)[-1]
+        if self.value.startswith(b'-e '):
+            return self.value.lower().partition(b'=')[-1]
 
-        m = self.UNTIL_SEP.match(name)
-        assert m is not None
+        return self.value.lower().partition(b'==')[0]
 
-        name = m.group()
-        m = self.UNTIL_COMPARISON.search(name)
-        if not m:
-            return name
-
-        return name[:m.start()]
-
-    def __lt__(self, requirement: 'Requirement') -> bool:
+    def __lt__(self, requirement):  # type: (Requirement) -> int
         # \n means top of file comment, so always return True,
         # otherwise just do a string comparison with value.
         assert self.value is not None, self.value
@@ -47,30 +37,13 @@ class Requirement:
         else:
             return self.name < requirement.name
 
-    def is_complete(self) -> bool:
-        return (
-            self.value is not None and
-            not self.value.rstrip(b'\r\n').endswith(b'\\')
-        )
 
-    def append_value(self, value: bytes) -> None:
-        if self.value is not None:
-            self.value += value
-        else:
-            self.value = value
-
-
-def fix_requirements(f: IO[bytes]) -> int:
-    requirements: List[Requirement] = []
-    before = list(f)
-    after: List[bytes] = []
+def fix_requirements(f):  # type: (IO[bytes]) -> int
+    requirements = []  # type: List[Requirement]
+    before = tuple(f)
+    after = []  # type: List[bytes]
 
     before_string = b''.join(before)
-
-    # adds new line in case one is missing
-    # AND a change to the requirements file is needed regardless:
-    if before and not before[-1].endswith(b'\n'):
-        before[-1] += b'\n'
 
     # If the file is empty (i.e. only whitespace/newlines) exit early
     if before_string.strip() == b'':
@@ -80,7 +53,7 @@ def fix_requirements(f: IO[bytes]) -> int:
         # If the most recent requirement object has a value, then it's
         # time to start building the next requirement object.
 
-        if not len(requirements) or requirements[-1].is_complete():
+        if not len(requirements) or requirements[-1].value is not None:
             requirements.append(Requirement())
 
         requirement = requirements[-1]
@@ -95,10 +68,10 @@ def fix_requirements(f: IO[bytes]) -> int:
                 requirement.value = b'\n'
             else:
                 requirement.comments.append(line)
-        elif line.lstrip().startswith(b'#') or line.strip() == b'':
+        elif line.startswith(b'#') or line.strip() == b'':
             requirement.comments.append(line)
         else:
-            requirement.append_value(line)
+            requirement.value = line
 
     # if a file ends in a comment, preserve it at the end
     if requirements[-1].value is None:
@@ -130,7 +103,7 @@ def fix_requirements(f: IO[bytes]) -> int:
         return FAIL
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*', help='Filenames to fix')
     args = parser.parse_args(argv)
@@ -142,7 +115,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             ret_for_file = fix_requirements(file_obj)
 
             if ret_for_file:
-                print(f'Sorting {arg}')
+                print('Sorting {}'.format(arg))
 
             retv |= ret_for_file
 
@@ -150,4 +123,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

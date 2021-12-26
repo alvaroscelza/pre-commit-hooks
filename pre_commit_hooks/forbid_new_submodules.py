@@ -1,36 +1,25 @@
-import argparse
-import os
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from typing import Optional
 from typing import Sequence
 
 from pre_commit_hooks.util import cmd_output
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('filenames', nargs='*')
-    args = parser.parse_args(argv)
-
-    if (
-        'PRE_COMMIT_FROM_REF' in os.environ and
-        'PRE_COMMIT_TO_REF' in os.environ
-    ):
-        diff_arg = '...'.join((
-            os.environ['PRE_COMMIT_FROM_REF'],
-            os.environ['PRE_COMMIT_TO_REF'],
-        ))
-    else:
-        diff_arg = '--staged'
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
+    # `argv` is ignored, pre-commit will send us a list of files that we
+    # don't care about
     added_diff = cmd_output(
-        'git', 'diff', '--diff-filter=A', '--raw', diff_arg, '--',
-        *args.filenames,
+        'git', 'diff', '--staged', '--diff-filter=A', '--raw',
     )
     retv = 0
     for line in added_diff.splitlines():
         metadata, filename = line.split('\t', 1)
         new_mode = metadata.split(' ')[1]
         if new_mode == '160000':
-            print(f'{filename}: new submodule introduced')
+            print('{}: new submodule introduced'.format(filename))
             retv = 1
 
     if retv:
@@ -44,4 +33,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())

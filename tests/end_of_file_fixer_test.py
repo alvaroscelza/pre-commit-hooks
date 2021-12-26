@@ -35,7 +35,7 @@ def test_integration(input_s, expected_retval, output, tmpdir):
     path = tmpdir.join('file.txt')
     path.write_binary(input_s)
 
-    ret = main([str(path)])
+    ret = main([path.strpath])
     file_output = path.read_binary()
 
     assert file_output == output

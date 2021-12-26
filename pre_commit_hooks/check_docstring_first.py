@@ -1,17 +1,30 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import io
 import tokenize
-from tokenize import tokenize as tokenize_tokenize
 from typing import Optional
 from typing import Sequence
 
-NON_CODE_TOKENS = frozenset((
-    tokenize.COMMENT, tokenize.ENDMARKER, tokenize.NEWLINE, tokenize.NL,
-    tokenize.ENCODING,
-))
+import six
+
+if six.PY2:  # pragma: no cover (PY2)
+    from tokenize import generate_tokens as tokenize_tokenize
+    OTHER_NON_CODE = ()
+else:  # pragma: no cover (PY3)
+    from tokenize import tokenize as tokenize_tokenize
+    OTHER_NON_CODE = (tokenize.ENCODING,)
+
+NON_CODE_TOKENS = frozenset(
+    (tokenize.COMMENT, tokenize.ENDMARKER, tokenize.NEWLINE, tokenize.NL) +
+    OTHER_NON_CODE,
+)
 
 
-def check_docstring_first(src: bytes, filename: str = '<unknown>') -> int:
+def check_docstring_first(src, filename='<unknown>'):
+    # type: (bytes, str) -> int
     """Returns nonzero if the source has what looks like a docstring that is
     not at the beginning of the source.
 
@@ -27,14 +40,18 @@ def check_docstring_first(src: bytes, filename: str = '<unknown>') -> int:
         if tok_type == tokenize.STRING and scol == 0:
             if found_docstring_line is not None:
                 print(
-                    f'{filename}:{sline} Multiple module docstrings '
-                    f'(first docstring on line {found_docstring_line}).',
+                    '{}:{} Multiple module docstrings '
+                    '(first docstring on line {}).'.format(
+                        filename, sline, found_docstring_line,
+                    ),
                 )
                 return 1
             elif found_code_line is not None:
                 print(
-                    f'{filename}:{sline} Module docstring appears after code '
-                    f'(code seen on line {found_code_line}).',
+                    '{}:{} Module docstring appears after code '
+                    '(code seen on line {}).'.format(
+                        filename, sline, found_code_line,
+                    ),
                 )
                 return 1
             else:
@@ -45,7 +62,7 @@ def check_docstring_first(src: bytes, filename: str = '<unknown>') -> int:
     return 0
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
     args = parser.parse_args(argv)

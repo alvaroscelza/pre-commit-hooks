@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import argparse
 import ast
 import platform
@@ -7,7 +11,7 @@ from typing import Optional
 from typing import Sequence
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv=None):  # type: (Optional[Sequence[str]]) -> int
     parser = argparse.ArgumentParser()
     parser.add_argument('filenames', nargs='*')
     args = parser.parse_args(argv)
@@ -19,14 +23,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             with open(filename, 'rb') as f:
                 ast.parse(f.read(), filename=filename)
         except SyntaxError:
-            impl = platform.python_implementation()
-            version = sys.version.split()[0]
-            print(f'{filename}: failed parsing with {impl} {version}:')
-            tb = '    ' + traceback.format_exc().replace('\n', '\n    ')
-            print(f'\n{tb}')
+            print('{}: failed parsing with {} {}:'.format(
+                filename,
+                platform.python_implementation(),
+                sys.version.partition(' ')[0],
+            ))
+            print('\n{}'.format(
+                '    ' + traceback.format_exc().replace('\n', '\n    '),
+            ))
             retval = 1
     return retval
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    exit(main())
